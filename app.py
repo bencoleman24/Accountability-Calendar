@@ -3,6 +3,8 @@ import json
 import os
 from datetime import datetime, timedelta
 
+import pytz  # Import pytz for timezone handling
+
 import matplotlib
 matplotlib.use('Agg')  # Set the backend before importing pyplot
 import matplotlib.pyplot as plt
@@ -12,10 +14,12 @@ from july.utils import date_range
 import numpy as np
 import matplotlib.colors as mcolors
 
-
 app = Flask(__name__)
 
 DATA_FILE = 'tasks.json'
+
+# Define US Eastern Time Zone
+eastern = pytz.timezone('US/Eastern')
 
 def load_data():
     if os.path.exists(DATA_FILE):
@@ -35,7 +39,8 @@ def home():
 
 @app.route('/add_tasks', methods=['GET', 'POST'])
 def add_tasks():
-    tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+    # Get tomorrow's date in Eastern Time
+    tomorrow = (datetime.now(eastern) + timedelta(days=1)).strftime('%Y-%m-%d')
     data = load_data()
 
     if request.method == 'POST':
@@ -62,10 +67,11 @@ def add_tasks():
         # Retrieve existing tasks for tomorrow if any
         existing_tasks = data.get(tomorrow, {}).get('tasks', [])
         return render_template('add_tasks.html', date=tomorrow, existing_tasks=existing_tasks)
-    
+
 @app.route('/today_tasks', methods=['GET', 'POST'])
 def today_tasks():
-    today = datetime.now().strftime('%Y-%m-%d')
+    # Get today's date in Eastern Time
+    today = datetime.now(eastern).strftime('%Y-%m-%d')
     data = load_data()
 
     if today not in data:
@@ -83,7 +89,6 @@ def today_tasks():
         tasks = data[today]['tasks']
         return render_template('today_tasks.html', tasks=tasks)
 
-
 def generate_heatmap():
     from calendar import monthrange
     import numpy as np
@@ -93,24 +98,33 @@ def generate_heatmap():
     dates = []
     completion_rates = []
 
+    # Get today's date in Eastern Time
+    today = datetime.now(eastern).date()
+
     for date_str, details in data.items():
-        date = pd.to_datetime(date_str)
-        total_tasks = len(details['tasks'])
-        completed_tasks = sum(1 for task in details['tasks'] if task['completed'])
-        completion_rate = completed_tasks / total_tasks if total_tasks > 0 else 0
-        dates.append(date)
-        completion_rates.append(completion_rate)
+        date = pd.to_datetime(date_str).date()
+        if date < today:
+            # Calculate completion rate for past dates
+            total_tasks = len(details['tasks'])
+            completed_tasks = sum(1 for task in details['tasks'] if task['completed'])
+            completion_rate = completed_tasks / total_tasks if total_tasks > 0 else 0
+            dates.append(date)
+            completion_rates.append(completion_rate)
+        else:
+            # Set completion rate to NaN for today and future dates
+            dates.append(date)
+            completion_rates.append(np.nan)
 
-    today = datetime.now()
-    start_date = datetime(today.year, today.month, 1)
-    # Get the last day of the current month
+    # Ensure all dates in the current month are included
+    start_date = datetime(today.year, today.month, 1).date()
     last_day = monthrange(today.year, today.month)[1]
-    end_date = datetime(today.year, today.month, last_day)
+    end_date = datetime(today.year, today.month, last_day).date()
 
-    # Create a date range for the current month
-    dates_all = pd.date_range(start=start_date, end=end_date)
+    dates_all = pd.date_range(start=start_date, end=end_date).date
+
     # Initialize completion rates for all dates in the month
-    completion_dict = {date: 0 for date in dates_all}
+    completion_dict = {date: np.nan for date in dates_all}
+
     # Update completion rates with actual data
     for date, rate in zip(dates, completion_rates):
         completion_dict[date] = rate
@@ -123,9 +137,12 @@ def generate_heatmap():
     cmap_colors = cmap(np.arange(cmap.N))
 
     # Set the first color (representing zero completion) to light grey
-    light_grey_rgba = np.array([0.9, 0.9, 0.9, 1.0])  # RGBA for light grey
+    light_grey_rgba = np.array([0.9, 0.9, 0.9, 1.0])  # Light grey
     cmap_colors[0] = light_grey_rgba
     new_cmap = mcolors.ListedColormap(cmap_colors)
+
+    # Set color for NaN values (e.g., for today and future dates)
+    new_cmap.set_bad(color='white')
 
     # Generate the heatmap using July
     plt.figure(figsize=(8, 2))
@@ -152,7 +169,8 @@ def generate_heatmap():
 
 @app.route('/add_excuse', methods=['GET', 'POST'])
 def add_excuse():
-    today = datetime.now().strftime('%Y-%m-%d')
+    # Get today's date in Eastern Time
+    today = datetime.now(eastern).strftime('%Y-%m-%d')
     data = load_data()
 
     if request.method == 'POST':
@@ -169,11 +187,10 @@ def add_excuse():
             save_data(data)
 
         # Display the message after submitting the excuse
-        message = "Thank you for sharing. Everyday can't be perfect, do your best tomorrow!"
+        message = "Thank you for sharing. Every day can't be perfect, do your best tomorrow!"
         return render_template('message.html', message=message)
     else:
         return render_template('add_excuse.html')
-
 
 if __name__ == '__main__':
     app.run(debug=True)
