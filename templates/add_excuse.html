@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Excuse</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Add Excuse for Today</h1>
+    <form method="post">
+        <label for="excuse">Your Excuse:</label>
+        <textarea name="excuse" id="excuse" rows="4" required></textarea>
+        <button type="submit">Submit Excuse</button>
+    </form>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Today's Tasks</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+
+</head>
+<body>
+    <h1>Today's Tasks</h1>
+    <form method="post">
+        {% for task in tasks %}
+            <input type="checkbox" name="completed" value="{{ task.description }}" {% if task.completed %}checked{% endif %}>
+            {{ task.description }} (Importance: {{ task.importance }})<br>
+        {% endfor %}
+        <br>
+        <input type="submit" value="Update Tasks">
+    </form>
+    <br>
+    <a href="{{ url_for('home') }}">Back to Home</a>
+</body>
+</html>

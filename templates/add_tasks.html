@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Tasks</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Add Tasks for {{ date }}</h1>
+
+    {% if existing_tasks %}
+        <h2>Existing Tasks:</h2>
+        <ul>
+            {% for task in existing_tasks %}
+                <li>{{ task.description }} (Importance: {{ task.importance }})</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <form method="post">
+        <div id="task-container">
+            <div class="task-entry">
+                <label>Task:</label>
+                <input type="text" name="task" required>
+                <label>Importance (1-5):</label>
+                <input type="number" name="importance" min="1" max="5" required>
+            </div>
+        </div>
+        <button type="button" onclick="addTask()">Add Another Task</button>
+        <button type="submit">Save Tasks</button>
+    </form>
+
+    <script>
+        function addTask() {
+            var container = document.getElementById('task-container');
+            var taskEntry = document.createElement('div');
+            taskEntry.className = 'task-entry';
+            taskEntry.innerHTML = `
+                <label>Task:</label>
+                <input type="text" name="task" required>
+                <label>Importance (1-5):</label>
+                <input type="number" name="importance" min="1" max="5" required>
+            `;
+            container.appendChild(taskEntry);
+        }
+    </script>
+</body>
+</html>

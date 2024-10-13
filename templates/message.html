@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Message</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>{{ message }}</h1>
+    <div class="button-container">
+        <a href="{{ url_for('home') }}"><button>Return to Home</button></a>
+    </div>
+</body>
+</html>
