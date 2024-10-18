@@ -2,9 +2,10 @@ from flask import Flask, render_template, request, redirect, url_for
 import json
 import os
 from datetime import datetime, timedelta
-
+from calendar import monthrange
+import numpy as np
+import matplotlib.colors as mcolors
 import pytz  # Import pytz for timezone handling
-
 import matplotlib
 matplotlib.use('Agg')  # Set the backend before importing pyplot
 import matplotlib.pyplot as plt
@@ -18,7 +19,7 @@ app = Flask(__name__)
 
 DATA_FILE = 'tasks.json'
 
-# Define US Eastern Time Zone
+# Define US Eastern Time Zone, change if needed
 eastern = pytz.timezone('US/Eastern')
 
 def load_data():
@@ -81,18 +82,19 @@ def today_tasks():
     if request.method == 'POST':
         completed_tasks = request.form.getlist('completed')
         for task in data[today]['tasks']:
+            # Toggle task completion based on whether it's in the completed_tasks list
             if task['description'] in completed_tasks:
                 task['completed'] = True
+            else:
+                task['completed'] = False  # Set to False if it's not checked
         save_data(data)
         return redirect(url_for('home'))
     else:
         tasks = data[today]['tasks']
         return render_template('today_tasks.html', tasks=tasks)
 
+
 def generate_heatmap():
-    from calendar import monthrange
-    import numpy as np
-    import matplotlib.colors as mcolors
 
     data = load_data()
     dates = []
@@ -133,7 +135,7 @@ def generate_heatmap():
     completion_rates = list(completion_dict.values())
 
     # Create a custom colormap
-    cmap = plt.get_cmap('YlGn')
+    cmap = plt.get_cmap('BuPu')
     cmap_colors = cmap(np.arange(cmap.N))
 
     # Set the first color (representing zero completion) to light grey
@@ -148,10 +150,11 @@ def generate_heatmap():
     plt.figure(figsize=(8, 2))
     ax = plt.gca()
 
+    norm = norm = mcolors.PowerNorm(gamma=0.5)
     july.heatmap(
         dates,
         completion_rates,
-        cmap=new_cmap,
+        cmap="github",
         colorbar=False,
         date_label=True,
         month_grid=False,
@@ -187,7 +190,7 @@ def add_excuse():
             save_data(data)
 
         # Display the message after submitting the excuse
-        message = "Thank you for sharing. Every day can't be perfect, do your best tomorrow!"
+        message = "Thank you for sharing. This excuse will not be saved because your future self probably does not care."
         return render_template('message.html', message=message)
     else:
         return render_template('add_excuse.html')
